@@ -72,6 +72,8 @@ interface Unit {
   readonly prep: string
   /** Before a list of values and ranges: "at minute 5 and …", "on the 1st through 7th". */
   readonly lead: string
+  /** Values count down (days from the end of the month), so ranges read from `stop` to `start`. */
+  readonly reversed?: boolean
   /** Fixed values: "at minutes 0 and 30", "on the 1st and 15th". */
   readonly fixed: (values: number[]) => string
   /** The repeat step: "every 15 minutes" or, for days, "every 2nd day". */
@@ -149,9 +151,10 @@ const DAY_FROM_END: Unit = {
   min: 1,
   step: 1,
   label: (n) => (n === 1 ? 'the last day' : `the ${ordinal(n)}-to-last day`),
-  end: (n) => (n === 1 ? 'last day' : `${ordinal(n)}-to-last day`),
+  end: (n) => (n === 1 ? 'the last day' : `the ${ordinal(n)}-to-last day`),
   prep: 'from',
   lead: 'on',
+  reversed: true,
   fixed: (v) => `on ${list(v.map((n) => DAY_FROM_END.label(n)))}`,
   every: everyOrdinal('day'),
 }
@@ -187,9 +190,10 @@ const YEAR: Unit = {
 function describeComponent(c: Component, unit: Unit): string {
   const { start, stop, repeat } = c
   if (stop === null && repeat === 0) return unit.label(start)
-  if (stop !== null && repeat <= unit.step) return `${unit.label(start)} through ${unit.end(stop)}`
   if (stop !== null) {
-    return `${unit.every(repeat)} from ${unit.label(start)} through ${unit.end(stop)}`
+    const [from, to] = unit.reversed ? [stop, start] : [start, stop]
+    const range = `${unit.label(from)} through ${unit.end(to)}`
+    return repeat <= unit.step ? range : `${unit.every(repeat)} from ${range}`
   }
   return `${unit.every(repeat)} starting ${unit.prep} ${unit.label(start)}`
 }

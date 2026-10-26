@@ -34,6 +34,11 @@ const EXPECTED: readonly (readonly [string, string])[] = [
   ['*-*~01 23:00', 'At 23:00 on the last day of every month'],
   ['*-02~03', 'At 00:00 on the 3rd-to-last day of February'],
   ['*-*~1..3', 'At 00:00 on the last 3 days of every month'],
+  ['*-*~2..4', 'At 00:00 on the 4th-to-last day through the 2nd-to-last day of every month'],
+  [
+    '*-*~1..5/2',
+    'At 00:00 on every 2nd day from the 5th-to-last day through the last day of every month',
+  ],
   ['Mon *-05~07/1', 'At 00:00 on the last Monday of May'],
   ['Fri *-*~7/1 18:00', 'At 18:00 on the last Friday of every month'],
   ['Fri *-*-13', 'At 00:00 on the 13th of every month if it is a Friday'],
