@@ -12,7 +12,7 @@ import { describe, next, normalize } from 'oncalendar'
 
 normalize('Mon..Fri 9:00 Europe/Tallinn') // 'Mon..Fri *-*-* 09:00:00 Europe/Tallinn'
 describe('Mon..Fri 9:00 Europe/Tallinn') // 'Every Monday to Friday at 09:00 (Europe/Tallinn)'
-next('*-*-~01 23:00', { count: 3 }) // last day of each month at 23:00
+next('*-*~01 23:00', { count: 3 }) // last day of each month at 23:00
 ```
 
 ## Why
