@@ -77,7 +77,8 @@ export interface NextOptions {
    * Number of elapses to return. Defaults to 1. Like one `systemd-analyze calendar --iterations=N`
    * run, the elapses are computed in sequence, so in the rare cases where glibc's mktime() depends on
    * its previous call (times in a repeated fall-back hour), `count: 10` can differ from ten calls with
-   * `count: 1`.
+   * `count: 1`. Must be a non-negative integer; a `RangeError` is thrown otherwise, as for an
+   * invalid `after`.
    */
   readonly count?: number
 }

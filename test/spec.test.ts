@@ -67,9 +67,18 @@ describe('next', () => {
     )
   })
 
+  it('rejects an invalid count or after', () => {
+    expect(() => next('daily', { count: 2.5 })).toThrow(RangeError)
+    expect(() => next('daily', { count: -1 })).toThrow(RangeError)
+    expect(() => next('daily', { after: new Date(Number.NaN) })).toThrow(RangeError)
+    expect(next('daily', { count: 0 })).toEqual([])
+  })
+
   it('defaults to one elapse after now', () => {
+    const before = Date.now()
     const [elapse] = next('minutely', { timeZone: 'UTC' })
-    expect(elapse?.getTime()).toBeGreaterThan(Date.now())
+    expect(elapse?.getTime()).toBeGreaterThan(before)
+    expect(elapse?.getTime()).toBeLessThanOrEqual(Date.now() + 60_000)
   })
 })
 
