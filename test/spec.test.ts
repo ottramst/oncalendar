@@ -48,6 +48,25 @@ describe('next', () => {
     )
   })
 
+  it('truncates sub-millisecond elapses; continuing needs count or after + 1 ms', () => {
+    const after = new Date('2026-06-15T10:30:00Z')
+    const [first, second] = next('*:*:1.420001', { after, timeZone: 'UTC', count: 2 })
+    expect(first?.toISOString()).toBe('2026-06-15T10:30:01.420Z')
+    expect(second?.toISOString()).toBe('2026-06-15T10:31:01.420Z')
+    const [again] = next('*:*:1.420001', { after: first as Date, timeZone: 'UTC' })
+    expect(again).toEqual(first)
+    const later = new Date((first as Date).getTime() + 1)
+    expect(next('*:*:1.420001', { after: later, timeZone: 'UTC' })).toEqual([second])
+  })
+
+  it('continues from the last returned date for whole-millisecond elapses', () => {
+    const after = new Date('2026-06-15T10:30:00Z')
+    const [first] = next('*:*:0/0.25', { after, timeZone: 'UTC' })
+    expect(next('*:*:0/0.25', { after: first as Date, timeZone: 'UTC' })[0]?.toISOString()).toBe(
+      '2026-06-15T10:30:00.500Z',
+    )
+  })
+
   it('defaults to one elapse after now', () => {
     const [elapse] = next('minutely', { timeZone: 'UTC' })
     expect(elapse?.getTime()).toBeGreaterThan(Date.now())

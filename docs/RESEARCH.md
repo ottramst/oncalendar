@@ -98,6 +98,20 @@ v262. `@-1` fails with `Invalid argument` in v252 and `Numerical result out of r
   on v252–v262: `minutely` in America/New_York from 01:59 EDT next fires at 02:00 EST, and `hourly` in
   Europe/Berlin from 02:00 CEST next fires at 03:00 CET. When the base time is already inside the second
   pass, elapses continue normally. The Python port repeats the hour instead.
+- **How systemd v262 computes next elapses** (measured, and read from v262's `find_next()`): each step
+  normalizes with glibc `mktime()`. When a time falls in a gap, glibc returns the candidate with
+  `tm_isdst` set, which moves forward in most zones but backward in Europe/Dublin, where tzdata marks
+  winter GMT as DST. systemd catches results that are not past the start time: it adds an hour and
+  stops forcing `tm_isdst`. A spec's own zone is applied with `setenv("TZ")` in the same process, so
+  glibc's cached offset (its first guess for the next call) carries over between elapses. That cache
+  decides which occurrence of a repeated local time is found. oncalendar emulates all of this on top of
+  `Intl`; `pnpm golden:mktime` checks the emulation against glibc.
+- **systemd gives up in midnight-gap zones:** `*-*-* 0/2:00` and `*-*-* 1/3:30` in Asia/Beirut and
+  America/Havana, from just before the spring-forward at midnight, hit systemd's 1000-step loop guard
+  ("Infinite loop in calendar calculation", EDEADLK, v262). oncalendar returns no elapse there, like
+  systemd. This is a systemd bug, not yet reported upstream.
+- **Version differences in elapses:** only `*-*-1/11` across a year change (v252) differs. v257 to v262
+  agree on every golden run, including all DST cases.
 - **Zone abbreviations:** a suffix like `CET` matches the local zone's abbreviation when `TZ` uses it. With
   `TZ=Europe/Berlin`, `*-*-* 12:00 CET` **never elapses** (v262), while under `TZ=UTC` it resolves to the
   tzdata zone `CET`. Abbreviations that are not tzdata zones (`NZST`, `CEST`) fail unless the local zone

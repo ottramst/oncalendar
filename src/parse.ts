@@ -114,7 +114,7 @@ function parseWeekdays(c: Cursor, d: Draft): void {
   for (;;) {
     const found = WEEKDAY_NAMES.find(([name]) => startsWithNoCase(c, name))
     if (!found) {
-      // No weekday here: assume the expression doesn't restrict weekdays and go on with the date.
+      // No leading weekday: weekdays are unrestricted and parsing goes on with the date.
       if (first) return
       throw new Fail()
     }
@@ -137,7 +137,7 @@ function parseWeekdays(c: Cursor, d: Draft): void {
       rangeStart = nr
       c.pos += 2
     } else if (c.char === '-') {
-      // `-` ranges are kept for backwards compatibility.
+      // Legacy `Mon-Fri` range syntax.
       if (rangeStart >= 0) throw new Fail()
       rangeStart = nr
       c.pos += 1
@@ -146,7 +146,7 @@ function parseWeekdays(c: Cursor, d: Draft): void {
       c.pos += 1
     }
 
-    // A trailing comma is fine, an open range is not.
+    // `Mon,` is accepted, `Mon..` is not.
     if (c.atEnd || c.char === ' ') {
       c.skipSpaces()
       if (rangeStart >= 0) throw new Fail()
@@ -165,7 +165,7 @@ function parseDecimal(c: Cursor, usec: boolean): number {
   if (value > INT_MAX) throw new Fail('ERANGE')
   if (usec) {
     value *= USEC_PER_SEC
-    // One `.` is a decimal point, `..` is a range.
+    // `1.5` is a fraction; `1..5` is a range.
     if (c.char === '.' && c.at(1) !== '.') {
       c.pos++
       value += parseFraction(c)
@@ -259,7 +259,7 @@ function parseDate(c: Cursor, d: Draft): boolean {
   }
   const t = c.clone()
   const first = parseChain(t, false)
-  // Already at the end, or a `:`: this was a time, not a date.
+  // A lone number or a number followed by `:` starts the time instead.
   if (t.atEnd || t.char === ':') return false
 
   if (t.char === '~') d.endOfMonth = true
@@ -267,7 +267,7 @@ function parseDate(c: Cursor, d: Draft): boolean {
   t.pos++
   const second = parseChain(t, false)
 
-  // Two parts: month and day. (`at(0)`, not `char`: TypeScript would keep the narrowing from above.)
+  // `M-D`. (`at(0)`, not `char`: TypeScript would keep the narrowing from above.)
   if (t.atEnd || t.at(0) === ' ') {
     t.skipSpaces()
     c.pos = t.pos
@@ -292,7 +292,7 @@ function parseDate(c: Cursor, d: Draft): boolean {
 }
 
 function parseTime(c: Cursor, d: Draft): void {
-  // No time at all means 00:00:00.
+  // Midnight when the time is omitted.
   if (c.atEnd) {
     d.hour = single(0)
     d.minute = single(0)
@@ -303,7 +303,7 @@ function parseTime(c: Cursor, d: Draft): void {
   if (c.char !== ':') throw new Fail()
   c.pos++
   d.minute = parseChain(c, false)
-  // Hours and minutes only: seconds are 0.
+  // `H:M` means second 0.
   if (c.atEnd) {
     d.microsecond = single(0)
     return

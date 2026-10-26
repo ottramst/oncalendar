@@ -87,7 +87,7 @@ function compareTm(a: Tm, b: Tm): number {
  * holds the normalized time with lower fields reset), or `null` for an error or a backward move.
  */
 function withinBounds(ctx: Context, tm: Tm): 0 | 1 | null {
-  // Bound the search so impossible dates like *-02-31 terminate.
+  // Stop at the last supported year, so dates that never occur (*-02-31) end the search.
   if (tm.year > MAX_YEAR) return null
   const t = { ...tm }
   if (!normalizeTm(ctx, t)) return null
@@ -100,7 +100,7 @@ function withinBounds(ctx: Context, tm: Tm): 0 | 1 | null {
   else if (t.mday !== tm.mday) t.hour = 0
   else if (t.hour !== tm.hour) t.min = 0
   else if (t.min !== tm.min) t.sec = 0
-  // Refuse to go backward.
+  // Normalizing to an earlier time is a failure.
   if (cmp < 0) return null
   if (cmp > 0) Object.assign(tm, t)
   return cmp === 0 ? 1 : 0
@@ -188,7 +188,7 @@ function findNext(ctx: Context, tm: Tm, usec: number): [Tm, number] {
       resetFrom('hour')
       continue
     }
-    // The hour we set may not exist because of a DST change; start over from the normalized time.
+    // 0: the hour was skipped by a DST change and normalized forward; search again from there.
     if (r === 0) continue
 
     v = findMatching(ctx, spec.minute, false, c, c.min)
