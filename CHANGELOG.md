@@ -1,5 +1,12 @@
 ## Unreleased
 
+## v0.1.1
+
+NOTES:
+
+- First release published from CI through npm trusted publishing, with provenance. No code changes
+  since v0.1.0.
+
 ## v0.1.0
 
 FEATURES:
