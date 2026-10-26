@@ -1,1 +1,2 @@
 * text=auto eol=lf
+test/golden/*.json linguist-generated=true
