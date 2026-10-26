@@ -256,11 +256,18 @@ async function generate(
     if (!line.startsWith('@@CASE\t')) continue
     const [, tz, base, ...rest] = line.split('\t')
     const input = rest.join('\t')
+    const truncated = () => new Error(`${image.name}: output ends inside case: ${line}`)
     const stdout: string[] = []
-    while (lines[i] !== '@@STDERR') stdout.push(lines[i++] as string)
+    while (lines[i] !== '@@STDERR') {
+      if (i >= lines.length) throw truncated()
+      stdout.push(lines[i++] as string)
+    }
     i++
     const stderr: string[] = []
-    while (!(lines[i] as string).startsWith('@@RC ')) stderr.push(lines[i++] as string)
+    while (!lines[i]?.startsWith('@@RC ')) {
+      if (i >= lines.length) throw truncated()
+      stderr.push(lines[i++] as string)
+    }
     const rc = Number((lines[i++] as string).slice(5))
     const c = byInput.get(input)
     if (!c || tz === undefined) throw new Error(`unknown case in output: ${line}`)
