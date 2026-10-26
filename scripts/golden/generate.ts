@@ -81,7 +81,8 @@ function readExpressions(): Expression[] {
   }
   // Long lists probe the component limit; they're too long to keep readable in expressions.txt.
   const hours = (n: number) => Array.from({ length: n }, (_, i) => i % 24).join(',')
-  for (const n of [240, 241, 242, 1000]) expressions.push({ input: `*-*-* ${hours(n)}:00`, dst: false })
+  for (const n of [240, 241, 242, 1000])
+    expressions.push({ input: `*-*-* ${hours(n)}:00`, dst: false })
   const seen = new Set<string>()
   for (const { input } of expressions) {
     if (seen.has(input)) throw new Error(`duplicate expression: ${JSON.stringify(input)}`)
@@ -255,11 +256,18 @@ async function generate(
     if (!line.startsWith('@@CASE\t')) continue
     const [, tz, base, ...rest] = line.split('\t')
     const input = rest.join('\t')
+    const truncated = () => new Error(`${image.name}: output ends inside case: ${line}`)
     const stdout: string[] = []
-    while (lines[i] !== '@@STDERR') stdout.push(lines[i++] as string)
+    while (lines[i] !== '@@STDERR') {
+      if (i >= lines.length) throw truncated()
+      stdout.push(lines[i++] as string)
+    }
     i++
     const stderr: string[] = []
-    while (!(lines[i] as string).startsWith('@@RC ')) stderr.push(lines[i++] as string)
+    while (!lines[i]?.startsWith('@@RC ')) {
+      if (i >= lines.length) throw truncated()
+      stderr.push(lines[i++] as string)
+    }
     const rc = Number((lines[i++] as string).slice(5))
     const c = byInput.get(input)
     if (!c || tz === undefined) throw new Error(`unknown case in output: ${line}`)
