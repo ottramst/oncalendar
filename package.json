@@ -1,0 +1,62 @@
+{
+  "name": "oncalendar",
+  "version": "0.0.0",
+  "description": "Parse, normalize, describe and evaluate systemd OnCalendar= calendar expressions, matching systemd-analyze calendar. Zero dependencies.",
+  "keywords": [
+    "systemd",
+    "oncalendar",
+    "systemd-timer",
+    "calendar",
+    "cron",
+    "schedule",
+    "systemd-analyze",
+    "timezone"
+  ],
+  "homepage": "https://github.com/ottramst/oncalendar#readme",
+  "bugs": {
+    "url": "https://github.com/ottramst/oncalendar/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ottramst/oncalendar.git"
+  },
+  "license": "MIT",
+  "author": "Ott Ramst",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "check": "biome check . && tsc",
+    "check:package": "publint && attw --pack . --profile esm-only",
+    "prepublishOnly": "pnpm check && pnpm test && pnpm build && pnpm check:package"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@biomejs/biome": "^2.6.3",
+    "@types/node": "^22.20.5",
+    "publint": "^0.3.25",
+    "tsdown": "^0.23.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  },
+  "packageManager": "pnpm@12.15.0"
+}

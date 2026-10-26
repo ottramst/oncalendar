@@ -1,0 +1,39 @@
+name: Bug report
+description: A result that differs from systemd, or another bug.
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: oncalendar version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: expression
+    attributes:
+      label: Expression
+      placeholder: Mon..Fri *-*-* 09:00:00 Europe/Tallinn
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: The call you made and the result you got, including the timezone and base time.
+      render: ts
+    validations:
+      required: true
+  - type: textarea
+    id: systemd
+    attributes:
+      label: What systemd says
+      description: Output of `systemd-analyze calendar --iterations=5 '<expression>'` (with `TZ=` set if relevant) and `systemd --version`.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime
+      placeholder: Node.js 24.3.0 / Chrome 150 / Safari 27
