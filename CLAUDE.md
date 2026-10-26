@@ -22,8 +22,11 @@ pnpm check:package   # publint + attw on the packed package
 
 ## Architecture
 
-- `src/spec.ts`: public API (`parse`, `normalize`, `next`, `describe`) and the `CalendarSpec` model, mirroring
-  systemd's `src/shared/calendarspec.c`.
+- `src/spec.ts`: public types (`CalendarSpec`, `Component`, options) and `CalendarSpecError`.
+- `src/parse.ts` (`parse`) and `src/format.ts` (`normalize`) mirror `calendar_spec_from_string()` and
+  `calendar_spec_to_string()` in systemd's `src/shared/calendarspec.c`; `src/zone.ts` wraps `Intl`.
+  `src/index.ts` is the public entry point.
+- `test/golden.ts` loads the goldens; tests assert against the newest systemd version in `test/golden/`.
 - `scripts/golden/`: generates expected values by running `systemd-analyze` in containers for several systemd
   versions; output lives in `test/golden/`.
 
