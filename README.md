@@ -5,15 +5,42 @@ Parse, normalize, describe and evaluate systemd
 expressions in JavaScript and TypeScript, with the same results as `systemd-analyze calendar`. Zero
 dependencies; runs in Node.js and browsers, with full IANA timezone and DST support.
 
-> **Status:** early development. The API below is the plan, not yet implemented.
+> **Status:** pre-release (0.x); not yet published to npm.
 
 ```ts
-import { describe, next, normalize } from 'oncalendar'
+import { describe, next, normalize, parse } from 'oncalendar'
 
 normalize('Mon..Fri 9:00 Europe/Tallinn') // 'Mon..Fri *-*-* 09:00:00 Europe/Tallinn'
-describe('Mon..Fri 9:00 Europe/Tallinn') // 'Every Monday to Friday at 09:00 (Europe/Tallinn)'
-next('*-*~01 23:00', { count: 3 }) // last day of each month at 23:00
+describe('Mon..Fri 9:00 Europe/Tallinn') // 'At 09:00 on Monday through Friday (Europe/Tallinn)'
+
+next('*-*~01 23:00', {
+  after: new Date('2026-10-26T00:00:00Z'),
+  timeZone: 'Europe/Tallinn',
+  count: 3,
+}) // 2026-10-31T21:00:00Z, 2026-11-30T21:00:00Z, 2026-12-31T21:00:00Z
+
+parse('*-*-* */6:00:00') // throws CalendarSpecError (code 'EINVAL'), as systemd rejects it too
 ```
+
+## API
+
+- `parse(expression, { timeZone? })` returns a `CalendarSpec`: weekday bitmask, each field as a list of
+  `{ start, stop, repeat }` components (`null` for `*`), seconds in microseconds, `endOfMonth` for `~`, and
+  `timeZone`. Invalid input throws `CalendarSpecError`, whose `code` is systemd's errno (`EINVAL`,
+  `ERANGE` or `ENOBUFS`).
+- `normalize(expression | spec)` returns the form `systemd-analyze calendar` prints as "Normalized form".
+- `next(expression | spec, { after?, timeZone?, count? })` returns up to `count` (default 1) elapses as
+  `Date`s, strictly after `after` (default now). It returns fewer, or none, when the expression stops
+  elapsing.
+- `describe(expression | spec)` returns an English description.
+
+`timeZone` is an IANA zone and defaults to the runtime's zone. It is the zone used for expressions without
+one, like the host's `TZ` for systemd. A zone in the expression (`… Europe/Berlin`, `… UTC`) takes
+precedence. Zone abbreviations (`… CET`) refer to the evaluating zone's standard or daylight time, as in
+systemd.
+
+Dates have millisecond precision, while systemd uses microseconds. For expressions with sub-millisecond
+seconds, request more elapses with `count` rather than passing the last returned date back as `after`.
 
 ## Why
 

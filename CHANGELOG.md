@@ -10,6 +10,8 @@ FEATURES:
 - `next()` returns the same elapses as `systemd-analyze calendar` (systemd 257 to 262), including DST
   gaps, repeated fall-back hours, negative DST (Europe/Dublin) and transitions at midnight. Time zones go
   through `Intl`, with glibc's `mktime()` behaviour emulated on top, so it runs in browsers too.
+- `describe()` returns an English description, such as "At 09:00 on Monday through Friday
+  (Europe/Tallinn)".
 - `Component.stop` is `null` for components that are not ranges, and `CalendarSpec` gains `dst` for
   abbreviation suffixes.
 
