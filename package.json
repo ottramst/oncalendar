@@ -48,6 +48,7 @@
     "check": "biome check . && tsc",
     "check:package": "publint && attw --pack . --profile esm-only",
     "golden": "node scripts/golden/generate.ts",
+    "golden:mktime": "node scripts/golden/mktime-diff.ts",
     "prepublishOnly": "pnpm check && pnpm test && pnpm build && pnpm check:package"
   },
   "devDependencies": {

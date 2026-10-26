@@ -11,6 +11,8 @@ export interface GoldenRun {
   readonly warning?: string | null
   /** Next elapses in UTC, truncated to whole seconds; absent when parsing failed. */
   readonly elapses?: readonly string[]
+  /** systemd failed computing the elapse after `elapses`, e.g. "Resource deadlock avoided". */
+  readonly elapseError?: string
 }
 
 export interface GoldenCase {

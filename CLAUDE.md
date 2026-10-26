@@ -25,10 +25,12 @@ pnpm check:package   # publint + attw on the packed package
 - `src/spec.ts`: public types (`CalendarSpec`, `Component`, options) and `CalendarSpecError`.
 - `src/parse.ts` (`parse`) and `src/format.ts` (`normalize`) mirror `calendar_spec_from_string()` and
   `calendar_spec_to_string()` in systemd's `src/shared/calendarspec.c`; `src/zone.ts` wraps `Intl`.
-  `src/index.ts` is the public entry point.
+  `src/next.ts` (`next`) ports `find_next()`; `src/mktime.ts` emulates glibc's `mktime()` (whose cached
+  offset systemd's results depend on) over `src/zone.ts`. `src/index.ts` is the public entry point.
 - `test/golden.ts` loads the goldens; tests assert against the newest systemd version in `test/golden/`.
 - `scripts/golden/`: generates expected values by running `systemd-analyze` in containers for several systemd
-  versions; output lives in `test/golden/`.
+  versions (`pnpm golden`, output in `test/golden/`), and checks `src/mktime.ts` against glibc
+  (`pnpm golden:mktime`). Both need Docker.
 
 ## Rules
 

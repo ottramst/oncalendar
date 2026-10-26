@@ -16,6 +16,16 @@ err=$(mktemp)
 while IFS='	' read -r tz base expr; do
   TZ="$tz" systemd-analyze calendar --iterations=10 --base-time="@$base" -- "$expr" >"$out" 2>"$err"
   rc=$?
+  # If computing an elapse fails, nothing is printed; find how many elapses come before the failure.
+  if [ "$rc" -ne 0 ] && grep -q '^Failed to determine next elapse' "$err"; then
+    n=9
+    while [ "$n" -gt 0 ]; do
+      TZ="$tz" systemd-analyze calendar --iterations="$n" --base-time="@$base" -- "$expr" >"$out.n" 2>/dev/null &&
+        break
+      n=$((n - 1))
+    done
+    if [ "$n" -gt 0 ]; then mv "$out.n" "$out"; else : >"$out"; fi
+  fi
   printf '@@CASE\t%s\t%s\t%s\n' "$tz" "$base" "$expr"
   cat "$out"
   printf '@@STDERR\n'

@@ -63,10 +63,22 @@ export interface ParseOptions {
 }
 
 export interface NextOptions {
-  /** Find elapses strictly after this instant. Defaults to now. */
+  /**
+   * Find elapses strictly after this instant. Defaults to now.
+   *
+   * Returned dates are truncated to whole milliseconds. For an expression with sub-millisecond
+   * seconds (`*:*:1.420001`), passing the last returned date back as `after` finds that same elapse
+   * again: ask for a larger `count` instead, or pass a date 1 ms later.
+   */
   readonly after?: Date
   /** IANA zone used when the expression has none. Defaults to the runtime's zone. */
   readonly timeZone?: string
-  /** Number of elapses to return. Defaults to 1. */
+  /**
+   * Number of elapses to return. Defaults to 1. Like one `systemd-analyze calendar --iterations=N`
+   * run, the elapses are computed in sequence, so in the rare cases where glibc's mktime() depends on
+   * its previous call (times in a repeated fall-back hour), `count: 10` can differ from ten calls with
+   * `count: 1`. Must be a non-negative integer; a `RangeError` is thrown otherwise, as for an
+   * invalid `after`.
+   */
   readonly count?: number
 }

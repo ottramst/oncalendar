@@ -11,6 +11,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { DST_ZONES, transitions } from './zones.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const outDir = join(here, '..', '..', 'test', 'golden')
@@ -31,6 +32,8 @@ interface Outcome {
   error?: string
   warning?: string
   elapses?: string[]
+  /** systemd failed while computing an elapse after `elapses` (e.g. its 1000-step loop guard). */
+  elapseError?: string
 }
 
 interface Run {
@@ -41,6 +44,7 @@ interface Run {
   error?: string | null
   warning?: string | null
   elapses?: string[]
+  elapseError?: string
 }
 
 interface Case extends Outcome {
@@ -57,7 +61,6 @@ interface Golden {
   readonly cases: Case[]
 }
 
-const DST_ZONES = ['Europe/Berlin', 'Pacific/Auckland', 'Europe/Dublin', 'America/New_York']
 // 2026-06-15T10:30:00Z, a plain instant away from any transition.
 const PLAIN = Date.UTC(2026, 5, 15, 10, 30) / 1000
 // 2026-12-31T23:59:30Z, just before a year change.
@@ -89,38 +92,6 @@ function readExpressions(): Expression[] {
     seen.add(input)
   }
   return expressions
-}
-
-function offsetMinutes(zone: string, ms: number): number {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: zone,
-    timeZoneName: 'longOffset',
-  }).formatToParts(ms)
-  const name = parts.find((p) => p.type === 'timeZoneName')?.value ?? ''
-  const m = /^GMT(?:([+-])(\d{2}):(\d{2}))?$/.exec(name)
-  if (!m) throw new Error(`unexpected offset ${name}`)
-  if (!m[1]) return 0
-  const minutes = Number(m[2]) * 60 + Number(m[3])
-  return m[1] === '-' ? -minutes : minutes
-}
-
-/** DST transitions (unix seconds) in 2026 and 2027, found by scanning hourly and bisecting. */
-function transitions(zone: string): number[] {
-  const found: number[] = []
-  const end = Date.UTC(2028, 0, 1)
-  for (let t = Date.UTC(2026, 0, 1); t < end; t += 3_600_000) {
-    if (offsetMinutes(zone, t) === offsetMinutes(zone, t + 3_600_000)) continue
-    let lo = t
-    let hi = t + 3_600_000
-    const before = offsetMinutes(zone, lo)
-    while (hi - lo > 1000) {
-      const mid = lo + Math.floor((hi - lo) / 2000) * 1000
-      if (offsetMinutes(zone, mid) === before) lo = mid
-      else hi = mid
-    }
-    found.push(hi / 1000)
-  }
-  return found
 }
 
 function buildCases(expressions: Expression[]): [string, number, string][] {
@@ -170,8 +141,14 @@ function toIso(stamp: string): string {
 /** Parses one case's stdout, stderr and exit code into an outcome. */
 function parseOutcome(input: string, stdout: string[], stderr: string[], rc: number): Outcome {
   const outcome: Outcome = {}
-  const messages = stderr.filter((l) => l !== '')
-  if (rc !== 0) {
+  let messages = stderr.filter((l) => l !== '')
+  const elapseFailure = messages.find((l) => l.startsWith('Failed to determine next elapse'))
+  if (rc !== 0 && elapseFailure !== undefined) {
+    outcome.elapseError = /: ([^:]+)$/.exec(elapseFailure)?.[1] ?? elapseFailure
+    messages = messages.filter(
+      (l) => l !== elapseFailure && !l.startsWith('Infinite loop in calendar calculation'),
+    )
+  } else if (rc !== 0) {
     // The log line is cut off for very long inputs, losing the errno text at the end.
     const line = messages.find((l) => l.startsWith('Failed to parse calendar specification '))
     if (line === undefined) {
@@ -209,7 +186,10 @@ function parseOutcome(input: string, stdout: string[], stderr: string[], rc: num
     }
   }
   if (pending !== null) elapses.push(toIso(pending))
-  if (outcome.normalized === undefined) throw new Error(`no normalized form for ${input}`)
+  // Failing at the first elapse prints nothing, not even the normalized form.
+  if (outcome.normalized === undefined && outcome.elapseError === undefined) {
+    throw new Error(`no normalized form for ${input}`)
+  }
   outcome.elapses = elapses
   return outcome
 }
@@ -279,12 +259,14 @@ async function generate(
     }
     const run: Run = { tz, base: Number(base) }
     // Only record parse results per run when they differ from the case (e.g. zone abbreviations).
-    if (!sameOutcome(c, outcome)) {
+    const unknown = outcome.normalized === undefined && outcome.elapseError !== undefined
+    if (!unknown && !sameOutcome(c, outcome)) {
       run.normalized = outcome.normalized ?? null
       run.error = outcome.error ?? null
       run.warning = outcome.warning ?? null
     }
     if (outcome.elapses) run.elapses = outcome.elapses
+    if (outcome.elapseError) run.elapseError = outcome.elapseError
     c.runs.push(run)
   }
   const cases = [...byInput.values()]
@@ -322,6 +304,7 @@ function runOutcome(c: Case, r: Run): Outcome {
   if (source.error != null) outcome.error = source.error
   if (source.warning != null) outcome.warning = source.warning
   if (r.elapses) outcome.elapses = r.elapses
+  if (r.elapseError) outcome.elapseError = r.elapseError
   return outcome
 }
 
