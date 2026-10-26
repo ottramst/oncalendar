@@ -230,9 +230,12 @@ function parseChain(c: Cursor, usec: boolean): Chain {
   return parseComponents(c, usec)
 }
 
-/** Parses `@seconds`. systemd uses an unsigned parser: whitespace and `+` are fine, `-` is ERANGE. */
+/**
+ * Parses `@seconds`. systemd uses an unsigned parser: C `isspace()` whitespace and `+` are fine, `-` is
+ * ERANGE.
+ */
 function parseEpoch(c: Cursor, d: Draft): void {
-  const m = /^\s*([+-]?)(\d+)$/.exec(c.text.slice(c.pos + 1))
+  const m = /^[ \t\n\v\f\r]*([+-]?)(\d+)$/.exec(c.text.slice(c.pos + 1))
   if (!m) throw new Fail()
   if (m[1] === '-') throw new Fail('ERANGE')
   if (BigInt(m[2] as string) > 0xffff_ffff_ffff_ffffn) throw new Fail('ERANGE')

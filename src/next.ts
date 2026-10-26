@@ -259,8 +259,11 @@ export function next(spec: CalendarSpec | string, options: NextOptions = {}): Da
   const ctx: Context = { spec: parsed, utc, zone, state: { offset: 0 } }
 
   const count = options.count ?? 1
+  if (!Number.isInteger(count) || count < 0) throw new RangeError(`invalid count: ${count}`)
+  const start = (options.after ?? new Date()).getTime()
+  if (Number.isNaN(start)) throw new RangeError('invalid after: Invalid Date')
   const result: Date[] = []
-  let after = (options.after ?? new Date()).getTime() * 1000
+  let after = start * 1000
   while (result.length < count) {
     const elapse = nextUsec(ctx, after)
     if (elapse === null) break
