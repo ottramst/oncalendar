@@ -81,7 +81,3 @@ describe('next', () => {
     expect(elapse?.getTime()).toBeLessThanOrEqual(Date.now() + 60_000)
   })
 })
-
-describe('describe', () => {
-  it.todo('describes shorthands, weekday ranges, ~ end-of-month and timezones')
-})
