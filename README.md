@@ -28,11 +28,12 @@ parse('*-*-* */6:00:00') // throws CalendarSpecError (code 'EINVAL'), as systemd
   `{ start, stop, repeat }` components (`null` for `*`), seconds in microseconds, `endOfMonth` for `~`, and
   `timeZone`. Invalid input throws `CalendarSpecError`, whose `code` is systemd's errno (`EINVAL`,
   `ERANGE` or `ENOBUFS`).
-- `normalize(expression | spec)` returns the form `systemd-analyze calendar` prints as "Normalized form".
+- `normalize(expression | spec, { timeZone? })` returns the form `systemd-analyze calendar` prints as
+  "Normalized form".
 - `next(expression | spec, { after?, timeZone?, count? })` returns up to `count` (default 1) elapses as
   `Date`s, strictly after `after` (default now). It returns fewer, or none, when the expression stops
   elapsing.
-- `describe(expression | spec)` returns an English description.
+- `describe(expression | spec, { timeZone? })` returns an English description.
 
 `timeZone` is an IANA zone and defaults to the runtime's zone. It is the zone used for expressions without
 one, like the host's `TZ` for systemd. A zone in the expression (`… Europe/Berlin`, `… UTC`) takes
