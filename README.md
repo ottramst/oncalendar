@@ -5,7 +5,11 @@ Parse, normalize, describe and evaluate systemd
 expressions in JavaScript and TypeScript, with the same results as `systemd-analyze calendar`. Zero
 dependencies; runs in Node.js and browsers, with full IANA timezone and DST support.
 
-> **Status:** pre-release (0.x); not yet published to npm.
+> **Status:** pre-release (0.x); the API may change before 1.0.
+
+```shell
+npm install oncalendar
+```
 
 ```ts
 import { describe, next, normalize, parse } from 'oncalendar'

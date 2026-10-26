@@ -1,6 +1,6 @@
 {
   "name": "oncalendar",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Parse, normalize, describe and evaluate systemd OnCalendar= calendar expressions, matching systemd-analyze calendar. Zero dependencies.",
   "keywords": [
     "systemd",

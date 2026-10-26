@@ -1,5 +1,7 @@
 ## Unreleased
 
+## v0.1.0
+
 FEATURES:
 
 - `parse()` and `normalize()` accept and reject the same expressions as `systemd-analyze calendar` (systemd
