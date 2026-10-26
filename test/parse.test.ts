@@ -44,6 +44,11 @@ describe('parse', () => {
     expect(() => parse('garbage')).toThrow(expect.objectContaining({ code: 'EINVAL' }))
   })
 
+  it('skips only C whitespace after @, like strtoull', () => {
+    expect(normalize('@\t1')).toBe('1970-01-01 00:00:01 UTC')
+    expect(() => parse('@\u00a01')).toThrow(CalendarSpecError)
+  })
+
   it('normalizes a parsed spec', () => {
     expect(normalize(parse('weekly UTC'))).toBe('Mon *-*-* 00:00:00 UTC')
   })

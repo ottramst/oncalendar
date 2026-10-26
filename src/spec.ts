@@ -56,7 +56,8 @@ export class CalendarSpecError extends Error {
 export interface ParseOptions {
   /**
    * IANA zone the expression is meant for. Only used to recognise that zone's abbreviations (`CET`,
-   * `NZDT`) as a suffix, like systemd does with the host's `TZ`. Defaults to the runtime's zone.
+   * `NZDT`) as a suffix, like systemd does with the host's `TZ`. Defaults to the runtime's zone. An
+   * unknown zone throws a `RangeError` from `Intl`.
    */
   readonly timeZone?: string
 }
