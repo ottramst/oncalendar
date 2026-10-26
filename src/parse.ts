@@ -58,10 +58,13 @@ const isDigit = (c: string | undefined): boolean => c !== undefined && c >= '0' 
 
 /** A read position in the input, standing in for C's `const char **p`. */
 class Cursor {
-  constructor(
-    readonly text: string,
-    public pos = 0,
-  ) {}
+  readonly text: string
+  pos: number
+
+  constructor(text: string, pos = 0) {
+    this.text = text
+    this.pos = pos
+  }
 
   get char(): string {
     return this.text[this.pos] ?? ''
@@ -431,8 +434,8 @@ function specValid(d: Draft): boolean {
 
 function toComponents(chain: Chain): readonly Component[] | null {
   return (
-    chain &&
-    chain.map(({ start, stop, repeat }) => ({ start, stop: stop < 0 ? null : stop, repeat }))
+    chain?.map(({ start, stop, repeat }) => ({ start, stop: stop < 0 ? null : stop, repeat })) ??
+    null
   )
 }
 

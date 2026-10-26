@@ -119,3 +119,83 @@ export function offsetMinutes(name: string): number {
   const minutes = Number(m[2]) * 60 + Number(m[3])
   return m[1] === '-' ? -minutes : minutes
 }
+
+/** A time zone as glibc's `localtime()` sees it, at whole-second resolution. */
+export interface Zone {
+  /** UTC offset in seconds east of Greenwich at unix time `t` (seconds). */
+  offset(t: number): number
+  /** glibc's `tm_isdst` at unix time `t`. */
+  isDst(t: number): boolean
+}
+
+export const UTC_ZONE: Zone = { offset: () => 0, isDst: () => false }
+
+/**
+ * Zones whose tzdata (the main format, which glibc distributions ship) marks winter as DST: Ireland's
+ * GMT in winter is "negative DST" from IST, and Morocco's Ramadan time is negative DST from +01. ICU
+ * reports these the other way round, so flip them.
+ */
+const NEGATIVE_DST = new Set(['Europe/Dublin', 'Eire', 'Africa/Casablanca', 'Africa/El_Aaiun'])
+
+const zones = new Map<string, Zone>()
+
+export function getZone(name: string): Zone {
+  if (name === 'UTC') return UTC_ZONE
+  let zone = zones.get(name)
+  if (!zone) {
+    zone = intlZone(name)
+    zones.set(name, zone)
+  }
+  return zone
+}
+
+function intlZone(name: string): Zone {
+  const format = new Intl.DateTimeFormat('en-US', {
+    timeZone: name,
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+  })
+  // Post-1970 transitions happen on whole minutes, so one lookup per minute is exact.
+  const byMinute = new Map<number, number>()
+  const offset = (t: number): number => {
+    const minute = Math.floor(t / 60)
+    let cached = byMinute.get(minute)
+    if (cached === undefined) {
+      const fields: Record<string, number> = {}
+      for (const part of format.formatToParts(minute * 60_000)) {
+        if (part.type !== 'literal') fields[part.type] = Number(part.value)
+      }
+      const local = Date.UTC(
+        fields.year as number,
+        (fields.month as number) - 1,
+        fields.day,
+        fields.hour,
+        fields.minute,
+      )
+      cached = local / 1000 - minute * 60
+      if (byMinute.size > 100_000) byMinute.clear()
+      byMinute.set(minute, cached)
+    }
+    return cached
+  }
+  const negative = NEGATIVE_DST.has(name)
+  const standardByYear = new Map<number, number>()
+  const isDst = (t: number): boolean => {
+    const year = new Date((t + offset(t)) * 1000).getUTCFullYear()
+    let standard = standardByYear.get(year)
+    if (standard === undefined) {
+      const jan = offset(Date.UTC(year, 0, 1) / 1000)
+      const jul = offset(Date.UTC(year, 6, 1) / 1000)
+      standard = negative ? Math.max(jan, jul) : Math.min(jan, jul)
+      standardByYear.set(year, standard)
+    }
+    const current = offset(t)
+    return negative ? current < standard : current > standard
+  }
+  return { offset, isDst }
+}
