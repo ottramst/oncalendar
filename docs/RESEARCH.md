@@ -51,7 +51,8 @@ Sources: [calendarspec.c](https://github.com/systemd/systemd/blob/main/src/share
 - **Time:** `H:M[:S]`, seconds default to `00`; no time means `00:00:00`; no date means `*-*-*`.
 - **Fields:** `*` or a comma list of `start[..stop][/repeat]`. `*` cannot take `/` or be in a list. Seconds
   accept decimal fractions (µs precision). Repeat ≠ 0 and must fire at least once. At most 240 components.
-- **`@epoch`:** fixed UTC instant; only `UTC` may follow.
+- **`@epoch`:** fixed UTC instant. A zone may follow but is ignored (measured: `@1790000000 Europe/Berlin`
+  normalizes to `… UTC`).
 - **Timezone:** `UTC`, any IANA zone after the last space, or the host's `tzname` abbreviations (model as the
   abbreviations of the selected zone). ISO `T`/`Z` timestamps are _not_ accepted
   ([#44091](https://github.com/systemd/systemd/issues/44091)).
@@ -79,17 +80,29 @@ two-digit padding, four-digit years; fractions as `.420001`, `.000000` dropped; 
 | v244    | `--base-time=`                                                                                                 |
 | v247    | `FixedRandomDelay=`                                                                                            |
 | v258    | `RandomizedOffsetSec=`; fix for negative-DST zones (Europe/Dublin)                                             |
+| v258    | warning when a weekday conflicts with a fixed date ([#40350](https://github.com/systemd/systemd/issues/40350)) |
 | v260    | fix for `*-*-1/11` skipping Jan 1 at a year change ([#40260](https://github.com/systemd/systemd/issues/40260)) |
-| v262    | warning when a weekday conflicts with a fixed date ([#40350](https://github.com/systemd/systemd/issues/40350)) |
+
+Measured with the golden generator (October 2026; v252, v257, v258, v259 and v262): the weekday-conflict
+warning first appears in **v258**, not v262 as NEWS suggested. The `*-*-1/11` fix is already in **v257.13**
+(Debian 13 and Fedora 42 builds), so it was backported. Our cases show no Dublin difference between v252 and
+v262. `@-1` fails with `Invalid argument` in v252 and `Numerical result out of range` from v257.
 
 ## Semantics gotchas
 
 - **Next elapse:** start at `after + 1µs`, cascade year → month → day → weekday → hour → minute → µs, bumping
   the parent on overflow; gives up after 2199 or 1000 iterations.
 - **Spring forward:** nonexistent local times are skipped, not shifted.
-- **Fall back:** a fixed time fires once (first occurrence). Recurring `minutely` did not fire during the
-  repeated hour in [#8647](https://github.com/systemd/systemd/issues/8647) (open since 2018); the Python port
-  repeats instead. Measure current systemd behaviour with the golden generator rather than guessing.
+- **Fall back:** a fixed time fires once (first occurrence). Recurring specs skip the second pass through
+  the repeated hour, as in [#8647](https://github.com/systemd/systemd/issues/8647) (open since 2018). Measured
+  on v252–v262: `minutely` in America/New_York from 01:59 EDT next fires at 02:00 EST, and `hourly` in
+  Europe/Berlin from 02:00 CEST next fires at 03:00 CET. When the base time is already inside the second
+  pass, elapses continue normally. The Python port repeats the hour instead.
+- **Zone abbreviations:** a suffix like `CET` matches the local zone's abbreviation when `TZ` uses it. With
+  `TZ=Europe/Berlin`, `*-*-* 12:00 CET` **never elapses** (v262), while under `TZ=UTC` it resolves to the
+  tzdata zone `CET`. Abbreviations that are not tzdata zones (`NZST`, `CEST`) fail unless the local zone
+  uses them.
+- **Whitespace:** leading or trailing whitespace and tabs are rejected; repeated inner spaces are accepted.
 - Behaviour depends on libc `mktime()` (glibc vs musl); generate goldens on glibc distros.
 - Weekday plus date is AND, unlike cron's OR. Biweekly is not expressible
   ([#6024](https://github.com/systemd/systemd/issues/6024)).

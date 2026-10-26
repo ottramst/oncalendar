@@ -47,6 +47,7 @@
     "format": "biome check --write .",
     "check": "biome check . && tsc",
     "check:package": "publint && attw --pack . --profile esm-only",
+    "golden": "node scripts/golden/generate.ts",
     "prepublishOnly": "pnpm check && pnpm test && pnpm build && pnpm check:package"
   },
   "devDependencies": {
